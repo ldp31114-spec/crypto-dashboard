@@ -12,7 +12,7 @@ body{background:#090b11;color:#e8eaf0;font-family:system-ui,sans-serif;min-heigh
 .logo{display:flex;align-items:center;gap:8px}
 .logo-icon{width:28px;height:28px;background:linear-gradient(135deg,#00e5a0,#0066ff);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
 .logo-text{font-weight:700;font-size:16px}
-.live-badge{background:rgba(0,229,160,0.15);color:#00b87a;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600}
+.live-badge{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600}
 .container{padding:16px;max-width:1200px;margin:0 auto}
 .price-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
 @media(max-width:700px){.price-grid{grid-template-columns:1fr 1fr}}
@@ -59,31 +59,28 @@ body{background:#090b11;color:#e8eaf0;font-family:system-ui,sans-serif;min-heigh
   <div class="logo">
     <div class="logo-icon">⚡</div>
     <span class="logo-text">CryptoSMC</span>
-    <span class="live-badge" id="live-badge">連接中...</span>
+    <span class="live-badge" id="live-badge" style="background:rgba(255,165,0,0.15);color:#ffa500">連接中...</span>
   </div>
   <span style="font-size:10px;color:#3a4055" id="update-time"></span>
 </div>
 <div class="container">
   <div class="price-grid" id="price-grid"></div>
-
   <div class="card" id="detail-card">
     <div style="text-align:center;color:#3a4055;padding:20px;font-size:13px">點選上方幣種查看詳情</div>
   </div>
-
   <div class="card">
     <div class="card-header">
       <span class="card-title" id="chart-title">BTC/USDT K線圖</span>
       <div class="tf-btns">
-        <button class="tf-btn active" onclick="changeTF(this,'1')">1m</button>
-        <button class="tf-btn" onclick="changeTF(this,'5')">5m</button>
-        <button class="tf-btn" onclick="changeTF(this,'15')">15m</button>
-        <button class="tf-btn" onclick="changeTF(this,'60')">1H</button>
-        <button class="tf-btn" onclick="changeTF(this,'240')">4H</button>
+        <button class="tf-btn active" onclick="changeTF(this,'1m')">1m</button>
+        <button class="tf-btn" onclick="changeTF(this,'5m')">5m</button>
+        <button class="tf-btn" onclick="changeTF(this,'15m')">15m</button>
+        <button class="tf-btn" onclick="changeTF(this,'1h')">1H</button>
+        <button class="tf-btn" onclick="changeTF(this,'4h')">4H</button>
       </div>
     </div>
     <div id="chart-container"></div>
   </div>
-
   <div class="card">
     <div class="card-header">
       <div style="display:flex;align-items:center;gap:8px">
@@ -96,38 +93,33 @@ body{background:#090b11;color:#e8eaf0;font-family:system-ui,sans-serif;min-heigh
       <div class="ai-empty">✦<br><br>選擇幣種後點「分析」獲取 AI 洞察</div>
     </div>
   </div>
-
   <div class="card">
     <div style="font-size:10px;color:#5a6070;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">24小時市場情緒</div>
     <div id="sentiment-bars"></div>
   </div>
-
   <div class="disc">⚠️ 僅供學習參考，不構成投資建議。加密貨幣具高風險，請自行評估。</div>
 </div>
-
 <script>
 const COINS=[
-  {id:'bitcoin',sym:'BTC',name:'Bitcoin',tv:'BINANCE:BTCUSDT'},
-  {id:'ethereum',sym:'ETH',name:'Ethereum',tv:'BINANCE:ETHUSDT'},
-  {id:'solana',sym:'SOL',name:'Solana',tv:'BINANCE:SOLUSDT'},
-  {id:'sui',sym:'SUI',name:'Sui',tv:'BINANCE:SUIUSDT'},
+  {id:'bitcoin',sym:'BTC',name:'Bitcoin',binance:'BTCUSDT'},
+  {id:'ethereum',sym:'ETH',name:'Ethereum',binance:'ETHUSDT'},
+  {id:'solana',sym:'SOL',name:'Solana',binance:'SOLUSDT'},
+  {id:'sui',sym:'SUI',name:'Sui',binance:'SUIUSDT'},
 ];
-
 let prices={};
 let selected=COINS[0];
 let aiLoading=false;
 let chart=null;
 let candleSeries=null;
-let currentTF='1';
+let currentTF='1m';
 let klineWS=null;
 
 function fmt(n,d=2){
-  if(n==null||isNaN(n))return '---';
+  if(n==null||isNaN(n))return'---';
   return parseFloat(n).toLocaleString(undefined,{maximumFractionDigits:d});
 }
-
 function sparkSVG(data,pos){
-  if(!data||data.length<2)return '';
+  if(!data||data.length<2)return'';
   const min=Math.min(...data),max=Math.max(...data),range=max-min||1;
   const w=70,h=24;
   const pts=data.map((v,i)=>((i/(data.length-1))*w).toFixed(1)+','+(h-((v-min)/range)*h).toFixed(1)).join(' ');
@@ -135,11 +127,10 @@ function sparkSVG(data,pos){
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 }
 
-// CoinGecko 拉數據（每30秒）
+// 用 Vercel API Proxy 拿幣價
 async function fetchAll(){
   try{
-    const ids=COINS.map(c=>c.id).join(',');
-    const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_7d_change=true&include_sparkline=true`);
+    const r=await fetch('/api/prices?ids=bitcoin,ethereum,solana,sui');
     const d=await r.json();
     COINS.forEach(c=>{
       if(d[c.id]){
@@ -154,18 +145,33 @@ async function fetchAll(){
     renderCards();
     renderDetail();
     renderSentiment();
-    document.getElementById('live-badge').textContent='LIVE';
-    document.getElementById('live-badge').style.background='rgba(0,229,160,0.15)';
+    const badge=document.getElementById('live-badge');
+    badge.textContent='LIVE';
+    badge.style.background='rgba(0,229,160,0.15)';
+    badge.style.color='#00b87a';
     document.getElementById('update-time').textContent='更新 '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }catch(e){
     document.getElementById('live-badge').textContent='重連中';
   }
 }
 
-// Binance K線 WebSocket
+// 用 Vercel API Proxy 拿 K線
+async function loadKlines(){
+  const symMap={bitcoin:'BTCUSDT',ethereum:'ETHUSDT',solana:'SOLUSDT',sui:'SUIUSDT'};
+  const sym=symMap[selected.id];
+  try{
+    const r=await fetch(`/api/klines?symbol=${sym}&interval=${currentTF}&limit=200`);
+    const data=await r.json();
+    if(!Array.isArray(data))return;
+    const candles=data.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4]}));
+    if(candleSeries)candleSeries.setData(candles);
+  }catch(e){console.log('K線載入失敗',e);}
+}
+
+// Binance WebSocket 即時K線更新
 function connectKline(){
-  const sym=(selected.id==='bitcoin'?'btcusdt':selected.id==='ethereum'?'ethusdt':selected.id==='solana'?'solusdt':'suiusdt');
-  const tf=currentTF+'m';
+  const sym=selected.binance.toLowerCase();
+  const tf=currentTF;
   if(klineWS){klineWS.close();klineWS=null;}
   try{
     klineWS=new WebSocket(`wss://stream.binance.com:9443/ws/${sym}@kline_${tf}`);
@@ -176,20 +182,6 @@ function connectKline(){
       }
     };
   }catch(e){}
-}
-
-// Binance REST K線
-async function loadKlines(){
-  const symMap={bitcoin:'BTCUSDT',ethereum:'ETHUSDT',solana:'SOLUSDT',sui:'SUIUSDT'};
-  const sym=symMap[selected.id];
-  const tf=currentTF+'m';
-  try{
-    const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${tf}&limit=200`);
-    const data=await r.json();
-    if(!Array.isArray(data))return;
-    const candles=data.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4]}));
-    if(candleSeries)candleSeries.setData(candles);
-  }catch(e){console.log('K線載入失敗',e);}
 }
 
 function initChart(){
@@ -255,7 +247,7 @@ function renderCards(){
 
 function renderDetail(){
   const d=prices[selected.id];
-  if(!d){return;}
+  if(!d)return;
   const pos=d.ch24>=0,pos7=d.ch7>=0;
   const smc=analyzeSMC(d.spark);
   const hi=d.spark.length?Math.max(...d.spark):null;
@@ -324,9 +316,8 @@ async function runAI(){
   const smcTxt=smc?`趨勢：${smc.trend==='bull'?'多頭':'空頭'}，${[smc.bos,smc.fvg,smc.eqh?'EQH流動性':null,smc.eql?'EQL流動性':null].filter(Boolean).join('，')||'無特殊結構'}`:'資料不足';
   const KEY=window.ANTHROPIC_KEY||'';
   if(!KEY||KEY.includes('填入')){
-    body.innerHTML=`<div class="ai-text" style="color:#5a6070;text-align:center">請先設定 Anthropic API Key\n\n在代碼最後一行找到:\nwindow.ANTHROPIC_KEY='sk-ant-在這裡填入你的Key'\n\n把 sk-ant-在這裡填入你的Key 換成你的 Key</div>`;
-    btn.disabled=false;btn.textContent='分析 '+selected.sym;
-    aiLoading=false;return;
+    body.innerHTML=`<div class="ai-text" style="color:#5a6070;text-align:center">請先設定 Anthropic API Key\n\n編輯 index.html 最後一行:\nwindow.ANTHROPIC_KEY='sk-ant-你的Key'</div>`;
+    btn.disabled=false;btn.textContent='分析 '+selected.sym;aiLoading=false;return;
   }
   try{
     const r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -340,11 +331,10 @@ async function runAI(){
   }catch(e){
     body.innerHTML=`<div class="ai-text" style="color:#5a6070;text-align:center">連線失敗，請稍後再試</div>`;
   }
-  btn.disabled=false;btn.textContent='分析 '+selected.sym;
-  aiLoading=false;
+  btn.disabled=false;btn.textContent='分析 '+selected.sym;aiLoading=false;
 }
 
-// ★ 在這裡填入你的 Anthropic API Key
+// ★ 填入你的 Anthropic API Key
 window.ANTHROPIC_KEY='sk-ant-在這裡填入你的Key';
 
 initChart();
