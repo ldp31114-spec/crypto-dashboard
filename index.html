@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CryptoSMC Dashboard</title>
-<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#090b11;color:#e8eaf0;font-family:system-ui,sans-serif;min-height:100vh}
@@ -113,7 +113,6 @@ body{background:#090b11;color:#e8eaf0;font-family:system-ui,sans-serif;min-heigh
 </div>
 
 <script>
-// 設定全新的 Render 後端網址
 const BACKEND_URL = 'https://my-crypto-radar-kskd.onrender.com';
 
 const COINS=[
@@ -136,7 +135,6 @@ function fmt(n,d=2){
   return parseFloat(n).toLocaleString(undefined,{maximumFractionDigits:d});
 }
 
-// 幣價改向全新的 Render 後端獲取
 async function fetchPrices(){
   try{
     const r=await fetch(`${BACKEND_URL}/api/prices?ids=bitcoin,ethereum,solana,sui`);
@@ -170,7 +168,6 @@ async function fetchPrices(){
   }
 }
 
-// K線改向全新的 Render 後端獲取
 async function loadKlines(){
   const sym={bitcoin:'BTCUSDT',ethereum:'ETHUSDT',solana:'SOLUSDT',sui:'SUIUSDT'}[selected.id];
   try{
@@ -183,7 +180,6 @@ async function loadKlines(){
   }catch(e){console.error('loadKlines error:',e);}
 }
 
-// Binance WebSocket 即時K線
 function connectKline(){
   const sym=selected.binance.toLowerCase();
   if(klineWS){try{klineWS.close();}catch(e){}klineWS=null;}
@@ -352,7 +348,7 @@ async function runAI(){
   btn.disabled=false;btn.textContent='分析 '+selected.sym;aiLoading=false;
 }
 
-// ★ 填入你的 Anthropic API Key（從 console.anthropic.com 取得）
+// ★ 填入你的 Anthropic API Key
 window.ANTHROPIC_KEY='sk-ant-在這裡填入你的Key';
 
 initChart();
