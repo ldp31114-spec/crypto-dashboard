@@ -113,6 +113,9 @@ body{background:#090b11;color:#e8eaf0;font-family:system-ui,sans-serif;min-heigh
 </div>
 
 <script>
+// 設定全新的 Render 後端網址
+const BACKEND_URL = 'https://my-crypto-radar-kskd.onrender.com';
+
 const COINS=[
   {id:'bitcoin',  sym:'BTC',name:'Bitcoin', binance:'BTCUSDT'},
   {id:'ethereum', sym:'ETH',name:'Ethereum',binance:'ETHUSDT'},
@@ -133,10 +136,10 @@ function fmt(n,d=2){
   return parseFloat(n).toLocaleString(undefined,{maximumFractionDigits:d});
 }
 
-// 幣價從 Vercel API Proxy 拿（解決 CORS）
+// 幣價改向全新的 Render 後端獲取
 async function fetchPrices(){
   try{
-    const r=await fetch('/api/prices?ids=bitcoin,ethereum,solana,sui');
+    const r=await fetch(`${BACKEND_URL}/api/prices?ids=bitcoin,ethereum,solana,sui`);
     if(!r.ok)throw new Error('HTTP '+r.status);
     const d=await r.json();
     let ok=false;
@@ -167,11 +170,11 @@ async function fetchPrices(){
   }
 }
 
-// K線從 Vercel API Proxy 拿
+// K線改向全新的 Render 後端獲取
 async function loadKlines(){
   const sym={bitcoin:'BTCUSDT',ethereum:'ETHUSDT',solana:'SOLUSDT',sui:'SUIUSDT'}[selected.id];
   try{
-    const r=await fetch(`/api/klines?symbol=${sym}&interval=${currentTF}&limit=200`);
+    const r=await fetch(`${BACKEND_URL}/api/klines?symbol=${sym}&interval=${currentTF}&limit=200`);
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json();
     if(!Array.isArray(data))return;
